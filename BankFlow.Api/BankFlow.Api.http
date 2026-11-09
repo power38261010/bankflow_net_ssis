@@ -1,0 +1,30 @@
+@host = http://localhost:5080
+@email = operador@example.com
+@password = {{$processEnv BOOTSTRAP_PASSWORD}}
+@csrf = REPLACE_WITH_XSRF_TOKEN_COOKIE
+
+### Obtain antiforgery cookies before login. Copy XSRF-TOKEN to csrf above.
+GET {{host}}/auth/csrf
+
+### The REST client must preserve both antiforgery cookies.
+POST {{host}}/auth/login
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrf}}
+
+{"username": "{{email}}", "password": "{{password}}"}
+
+### Current session
+GET {{host}}/auth/me
+
+### Refresh CSRF after login: the token is bound to the authenticated identity.
+GET {{host}}/auth/csrf
+
+### Accounts (requires the session cookie)
+GET {{host}}/accounts
+
+### Logout (update csrf with the authenticated token first)
+POST {{host}}/auth/logout
+Content-Type: application/json
+X-XSRF-TOKEN: {{csrf}}
+
+{}

@@ -1,0 +1,14 @@
+**/bin/
+**/obj/
+**/node_modules/
+**/dist/
+**/.angular/
+**/test-results/
+**/playwright-report/
+**/BenchmarkDotNet.Artifacts/
+**/*.db
+**/*.db-shm
+**/*.db-wal
+.env
+data/
+agregado_para_practicar_entrevista_tecnica.md

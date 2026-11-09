@@ -1,0 +1,7 @@
+node_modules
+dist
+.angular
+test-results
+playwright-report
+BenchmarkDotNet.Artifacts
+.vscode
