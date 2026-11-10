@@ -11,7 +11,8 @@ export class Session {
 	private readonly http = inject(HttpClient);
 	readonly user = signal<User | null>(null);
 	readonly isOperator = computed(() => this.user()?.roles.includes("Operator") ?? false);
-	readonly roleLabel = computed(() => this.isOperator() ? "Operador" : "Cliente");
+	readonly isExecutive = computed(() => this.user()?.roles.includes("Executive") ?? false);
+	readonly roleLabel = computed(() => this.isOperator() ? "Operador" : this.isExecutive() ? "Dirección" : "Cliente");
 	async restore(): Promise<boolean> {
 		try {
 			this.user.set(await firstValueFrom(this.http.get<User>("/api/auth/me")));
@@ -54,7 +55,20 @@ export class Session {
 export const sessionGuard: CanActivateFn = async () => {
 	const session = inject(Session);
 	const router = inject(Router);
-	return await session.restore() || router.createUrlTree(["/login"]);
+	if (!await session.restore()) return router.createUrlTree(["/login"]);
+	if (session.isExecutive()) return router.createUrlTree(["/backoffice"]);
+	return session.user()?.roles.some(role => role === "Operator" || role === "Client")
+		? true
+		: router.createUrlTree(["/login"]);
+};
+
+export const backofficeGuard: CanActivateFn = async () => {
+	const session = inject(Session);
+	const router = inject(Router);
+	if (!await session.restore()) return router.createUrlTree(["/login"]);
+	return session.user()?.roles.some(role => role === "Operator" || role === "Executive")
+		? true
+		: router.createUrlTree(["/"]);
 };
 
 export const bankingUserGuard: CanActivateFn = async () => {

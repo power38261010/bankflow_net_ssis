@@ -393,6 +393,44 @@ public sealed class AuthenticationTests
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/clients")).StatusCode);
     }
 
+    [Fact]
+    public async Task Executive_ShouldReadBackofficeOverviewButNotOperateBankingEndpoints()
+    {
+        await using var factory = new AuthFactory();
+        using var operatorClient = factory.CreateClient();
+        var (sourceAccountId, _) = await PrepareTransfer(operatorClient);
+        var operatorOverview = await operatorClient.GetFromJsonAsync<JsonElement>("/backoffice/overview");
+        Assert.Equal(2, operatorOverview.GetProperty("accountCount").GetInt32());
+
+        using var sender = factory.CreateClient();
+        await AuthenticateAs(sender, "sender@bankflow.test");
+        Assert.Equal(HttpStatusCode.Created,
+            (await SendTransfer(sender, sourceAccountId, "TRANSFER002", 25m, Guid.NewGuid())).StatusCode);
+
+        using (var scope = factory.Services.CreateScope())
+        {
+            var users = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+            var user = new IdentityUser { UserName = "executive@bankflow.test", Email = "executive@bankflow.test" };
+            Assert.True((await users.CreateAsync(user, AuthFactory.Password)).Succeeded);
+            Assert.True((await users.AddToRoleAsync(user, BankFlowRoles.Executive)).Succeeded);
+        }
+
+        using var executiveClient = factory.CreateClient();
+        await AuthenticateAs(executiveClient, "executive@bankflow.test");
+        var response = await executiveClient.GetAsync("/backoffice/overview");
+        Assert.True(response.StatusCode == HttpStatusCode.OK, await response.Content.ReadAsStringAsync());
+        var overview = await response.Content.ReadFromJsonAsync<JsonElement>();
+        Assert.Equal(2, overview.GetProperty("accountCount").GetInt32());
+        Assert.Equal(100m, overview.GetProperty("totalBalance").GetDecimal());
+        Assert.Equal(1, overview.GetProperty("transfersLast30Days").GetInt32());
+        Assert.Equal(25m, overview.GetProperty("transferVolumeLast30Days").GetDecimal());
+        var recent = overview.GetProperty("recentTransfers")[0];
+        Assert.Equal("R001", recent.GetProperty("sourceAccountLastFour").GetString());
+        Assert.Equal("R002", recent.GetProperty("destinationAccountLastFour").GetString());
+        Assert.Equal(HttpStatusCode.Forbidden, (await executiveClient.GetAsync("/accounts")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await executiveClient.GetAsync("/clients")).StatusCode);
+    }
+
     private static async Task AuthenticateAs(HttpClient client, string email)
     {
         await SetCsrf(client);

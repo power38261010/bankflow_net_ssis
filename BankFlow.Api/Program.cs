@@ -53,6 +53,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy(BankFlowRoles.BankingPolicy, policy => policy.RequireRole(BankFlowRoles.Operator, BankFlowRoles.Client).RequireClaim(ClaimTypes.NameIdentifier));
     options.AddPolicy(BankFlowRoles.OperatorPolicy, policy => policy.RequireRole(BankFlowRoles.Operator));
+    options.AddPolicy(BankFlowRoles.BackofficePolicy, policy => policy.RequireRole(BankFlowRoles.Operator, BankFlowRoles.Executive));
 });
 
 var app = builder.Build();
@@ -69,6 +70,8 @@ app.UseExceptionHandler(exceptionHandlerApp =>
     exceptionHandlerApp.Run(async context =>
     {
         var exception = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerFeature>()?.Error;
+        if (exception is not null)
+            app.Logger.LogError(exception, "Unhandled API exception for {Path}", context.Request.Path);
 
         context.Response.StatusCode = exception switch
         {
@@ -131,6 +134,7 @@ app.MapMfa();
 app.MapClients();
 app.MapAccounts();
 app.MapTransfers();
+app.MapBackoffice();
 app.MapPayments();
 app.MapHub<NotificationHub>("/hubs/notifications");
 app.MapNotifications();

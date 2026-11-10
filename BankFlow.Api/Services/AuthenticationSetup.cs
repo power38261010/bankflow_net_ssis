@@ -101,12 +101,13 @@ public static class AuthenticationSetup
         using var scope = app.Services.CreateScope();
         await scope.ServiceProvider.GetRequiredService<AuthDbContext>().Database.EnsureCreatedAsync();
         var roles = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-        foreach (var role in new[] { BankFlowRoles.Operator, BankFlowRoles.Client })
+        foreach (var role in new[] { BankFlowRoles.Operator, BankFlowRoles.Client, BankFlowRoles.Executive })
         {
             if (await roles.RoleExistsAsync(role)) continue;
             var created = await roles.CreateAsync(new IdentityRole(role));
             if (!created.Succeeded) throw new InvalidOperationException("Unable to initialize application roles.");
         }
+        await InitializeExecutiveAsync(app, scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>());
         var email = app.Configuration["Bootstrap:Email"];
         var password = app.Configuration["Bootstrap:Password"];
         if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password)) return;
@@ -124,6 +125,30 @@ public static class AuthenticationSetup
             throw new InvalidOperationException("Bootstrap user already has a non-operator role.");
         var assigned = await users.AddToRoleAsync(user, BankFlowRoles.Operator);
         if (!assigned.Succeeded) throw new InvalidOperationException("Unable to assign bootstrap operator role.");
+        await users.UpdateSecurityStampAsync(user);
+    }
+
+    private static async Task InitializeExecutiveAsync(WebApplication app, UserManager<IdentityUser> users)
+    {
+        var email = app.Configuration["Bootstrap:ExecutiveEmail"];
+        var password = app.Configuration["Bootstrap:ExecutivePassword"];
+        if (string.IsNullOrWhiteSpace(email) && string.IsNullOrWhiteSpace(password)) return;
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+            throw new InvalidOperationException("Bootstrap:ExecutiveEmail and Bootstrap:ExecutivePassword must be configured together.");
+
+        var user = await users.FindByEmailAsync(email);
+        if (user is null)
+        {
+            user = new IdentityUser { UserName = email, Email = email };
+            var result = await users.CreateAsync(user, password);
+            if (!result.Succeeded)
+                throw new InvalidOperationException("Executive bootstrap user rejected: " + string.Join(", ", result.Errors.Select(error => error.Code)));
+        }
+        if (await users.IsInRoleAsync(user, BankFlowRoles.Executive)) return;
+        if ((await users.GetRolesAsync(user)).Count != 0)
+            throw new InvalidOperationException("Executive bootstrap user already has a different role.");
+        var assigned = await users.AddToRoleAsync(user, BankFlowRoles.Executive);
+        if (!assigned.Succeeded) throw new InvalidOperationException("Unable to assign the executive role.");
         await users.UpdateSecurityStampAsync(user);
     }
 
@@ -194,6 +219,8 @@ public static class BankFlowRoles
 {
     public const string Operator = "Operator";
     public const string Client = "Client";
+    public const string Executive = "Executive";
     public const string BankingPolicy = "BankingUser";
     public const string OperatorPolicy = "BankingOperator";
+    public const string BackofficePolicy = "BankingBackoffice";
 }

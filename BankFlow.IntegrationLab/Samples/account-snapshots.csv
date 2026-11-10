@@ -1,0 +1,6 @@
+SourceSystem,SourceAccountId,CustomerName,AccountNumber,Balance,SnapshotDate
+BankFlow,ACC-1001,Ana Demo,ES1000000001,1520.75,2026-10-01
+BankFlow,ACC-1002,"Bruno, Demo",ES1000000002,800.00,2026-10-01
+Sybase,LEG-7001,Carmen Demo,SY7001,125.40,2026-10-01
+Teradata,WH-9001,Diego Demo,TD9001,0.00,2026-10-01
+BankFlow,ACC-1003,Invalid Demo,ES1000000003,-50.00,2026-10-01

@@ -31,6 +31,8 @@ services:
       - ConnectionStrings__AuthDb=Data Source=/data/bankflow-auth.db
       - Bootstrap__Email=${BOOTSTRAP_EMAIL:-}
       - Bootstrap__Password=${BOOTSTRAP_PASSWORD:-}
+      - Bootstrap__ExecutiveEmail=${BOOTSTRAP_EXECUTIVE_EMAIL:-}
+      - Bootstrap__ExecutivePassword=${BOOTSTRAP_EXECUTIVE_PASSWORD:-}
     volumes:
       - auth_data:/data
       - data_protection_keys:/root/.aspnet/DataProtection-Keys

@@ -13,6 +13,14 @@ export interface Account {
 export interface Client { id: string; email: string; }
 export interface PageResult<T> { items: T[]; page: number; pageSize: number; totalCount: number; }
 export interface AccountSummary { accountCount: number; totalBalance: number; }
+export interface BackofficeTransfer {
+	id: string; sourceAccountLastFour: string; destinationAccountLastFour: string; amount: number; createdAt: string;
+}
+export interface BackofficeOverview {
+	accountCount: number; totalBalance: number; clientCount: number; transfersLast30Days: number;
+	transferVolumeLast30Days: number; pendingPayments: number; failedPayments: number;
+	depositsLast30Days: number; withdrawalsLast30Days: number; recentTransfers: BackofficeTransfer[];
+}
 export interface Beneficiary { id: string; name: string; accountNumber: string; createdAt: string; }
 export interface ScheduledDraft { key: string; sourceAccountId: string; beneficiaryId: string; amount: number; description: string; frequency: number; dueAt: string; }
 export interface ScheduledPayment {
@@ -52,6 +60,7 @@ export class Banking {
 		return firstValueFrom(this.http.get<PageResult<Account>>("/api/accounts/page", { params: { page, pageSize, search } }));
 	}
 	summary() { return firstValueFrom(this.http.get<AccountSummary>("/api/accounts/summary")); }
+	backofficeOverview() { return firstValueFrom(this.http.get<BackofficeOverview>("/api/backoffice/overview")); }
 	account(id: string) { return firstValueFrom(this.http.get<Account>(`/api/accounts/${id}`)); }
 	movementPage(id: string, page: number, pageSize: number) {
 		return firstValueFrom(this.http.get<PageResult<Transaction>>(`/api/accounts/${id}/transactions/page`, { params: { page, pageSize } }));

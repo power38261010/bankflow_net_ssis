@@ -13,6 +13,7 @@ Workspace bancario para operadores y clientes: ASP.NET Core 8, SQL Server y Angu
 - Transferencias internas atomicas, confirmacion, comprobantes JSON y reintentos idempotentes.
 - Bandeja de notificaciones persistente y avisos de transferencias en tiempo real mediante SignalR.
 - Beneficiarios personales y pagos unicos/semanales/mensuales con worker durable, cancelacion y creacion idempotente.
+- Laboratorio ETL para practicar SQL Server, SSIS, calidad de datos y consultas de extracción Sybase ASE/Teradata con snapshots sintéticos.
 - Confirmacion de operaciones, estados de carga, errores y disenio adaptable.
 - Importes presentados en EUR. El dominio existente no modela monedas ni conversiones.
 
@@ -30,18 +31,25 @@ ASP.NET Core Identity guarda usuarios y hashes PBKDF2 en SQLite, separada del SQ
 
 El usuario configurado por bootstrap se crea solo si no existe; cambiar Bootstrap:Password no cambia su contrasena. Recibe el rol Operator. Un bootstrap anterior sin rol se actualiza a Operator una sola vez, invalidando sus sesiones para que vuelva a iniciar sesion. No se promueven usuarios que ya tengan otro rol. Retira la variable de bootstrap despues de provisionarlo.
 
+El backoffice tiene un rol opcional `Executive`, separado de `Operator` y `Client`. Dirección solo puede consultar `/backoffice/overview`: indicadores y transferencias recientes con números de cuenta enmascarados; no puede operar cuentas, clientes ni pagos. Para crear esa cuenta inicialmente, configura `BOOTSTRAP_EXECUTIVE_EMAIL` y `BOOTSTRAP_EXECUTIVE_PASSWORD` en `.env` antes de iniciar la API. Deben configurarse juntos; se crea un usuario nuevo o se asigna el rol solo a un usuario sin otros roles. No se eleva automáticamente una cuenta existente de operador/cliente. Retira las variables tras provisionar.
+
 ## Roles y Propietarios
 
-| Accion | Operator | Client |
-| --- | --- | --- |
-| Consultar cuentas y movimientos | Todas | Solo propias |
-| Crear clientes | Si | No |
-| Crear cuentas y seleccionar propietario | Si | No |
-| Asignar propietario a una cuenta antigua | Si, solo sin propietario | No |
-| Registrar depositos y retiros de caja | Si | No |
-| Transferir entre cuentas asignadas | Cualquier origen asignado | Solo origen propio |
-| Guardar beneficiarios | Directorio personal | Directorio personal |
-| Programar/cancelar pagos | Cuentas asignadas / vista global | Solo propias |
+| Accion | Operator | Client | Executive |
+| --- | --- | --- | --- |
+| Consultar indicadores e actividad agregada del backoffice | Si | No | Si |
+| Consultar cuentas y movimientos | Todas | Solo propias | No |
+| Crear clientes | Si | No | No |
+| Crear cuentas y seleccionar propietario | Si | No | No |
+| Asignar propietario a una cuenta antigua | Si, solo sin propietario | No | No |
+| Registrar depositos y retiros de caja | Si | No | No |
+| Transferir entre cuentas asignadas | Cualquier origen asignado | Solo origen propio | No |
+| Guardar beneficiarios | Directorio personal | Directorio personal | No |
+| Programar/cancelar pagos | Cuentas asignadas / vista global | Solo propias | No |
+
+El rol `Executive` puede consultar únicamente los indicadores agregados del
+backoffice. No tiene acceso a endpoints de banca ni a identificadores de clientes
+o cuentas. Esta separación se aplica también en la API, no solo en la interfaz.
 
 El operador crea clientes con el boton Nuevo cliente, su correo y una contrasena inicial que cumpla la politica. No puede elegir el rol: la API asigna siempre Client. El cliente entra por el mismo login y ve Mis cuentas. Los depositos/retiros actuales representan operaciones de caja; las transferencias permiten al cliente mover fondos desde sus propias cuentas.
 
@@ -114,6 +122,21 @@ Decision de arquitectura y garantias: [ADR 0001](docs/adr/0001-internal-transfer
 Consultas y medicion real: [evidencia de paginacion y carga](docs/performance/read-pages.md).
 Beneficiarios y calendario: [ADR 0003](docs/adr/0003-beneficiaries-and-scheduled-payments.md).
 Outbox transaccional y SignalR: [ADR 0004](docs/adr/0004-transactional-notification-outbox.md).
+Preparacion para entrevista SSIS/SQL/.NET: [ruta práctica y laboratorio ETL](docs/interview-learning-roadmap.md).
+
+Laboratorio ETL/ELT ejecutable (base desechable SQL Server):
+
+```bash
+export BANKFLOW_ETL_SQL='Server=localhost,1433;Database=BankFlowTraining;User Id=sa;Password=<tu-secreto>;TrustServerCertificate=True'
+dotnet run --project BankFlow.IntegrationLab -- setup
+dotnet run --project BankFlow.IntegrationLab -- demo
+dotnet run --project BankFlow.IntegrationLab -- import BankFlow.IntegrationLab/Samples/account-snapshots.csv
+```
+
+`demo` genera fuentes sinteticas repetibles para SQL Server, Sybase y Teradata,
+y ejecuta ELT dentro de SQL Server. `import` representa ETL con transformacion y
+validacion en .NET antes de cargar staging. SSIS y los motores externos requieren
+sus propios entornos; consulta la ruta de aprendizaje.
 
 ## Beneficiarios y Pagos
 

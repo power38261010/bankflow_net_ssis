@@ -1,0 +1,38 @@
+<div class="workspace">
+	<aside class="sidebar">
+		<a class="brand" href="/"><span class="brand-mark"><mat-icon>account_balance</mat-icon></span>BankFlow</a>
+		<div class="workspace-label">BACKOFFICE</div>
+		<a class="nav-item active" routerLink="/backoffice" aria-current="page"><mat-icon>query_stats</mat-icon>{{ session.isExecutive() ? 'Vista ejecutiva' : 'Resumen general' }}</a>
+		@if (session.isOperator()) {
+			<a class="nav-item" routerLink="/"><mat-icon>credit_card</mat-icon>Cuentas y clientes</a>
+			<a class="nav-item" routerLink="/payments"><mat-icon>event_repeat</mat-icon>Pagos programados</a>
+		}
+		<div class="sidebar-bottom"><div class="operator-avatar"><mat-icon>person_outline</mat-icon></div><div class="operator-info"><strong>{{ session.roleLabel() }}</strong><span>{{ session.user()?.email }}</span></div></div>
+	</aside>
+	<div class="workspace-main">
+		<header class="topbar"><span class="breadcrumb">Workspace <span>/</span> <strong>Backoffice</strong></span><div class="topbar-actions"><span class="session-label"><span class="status-dot"></span>Sesion activa</span><button mat-icon-button matTooltip="Cerrar sesion" aria-label="Cerrar sesion" [disabled]="loggingOut()" (click)="logout()"><mat-icon>logout</mat-icon></button></div></header>
+		<main class="content">
+			<div class="page-heading"><div><div class="eyebrow">{{ session.isExecutive() ? 'DIRECCION · SOLO LECTURA' : 'BACKOFFICE · OPERACIONES' }}</div><h1>{{ session.isExecutive() ? 'Resumen ejecutivo' : 'Centro de operaciones' }}</h1><p class="muted">Indicadores operativos y actividad reciente · ultimos 30 dias.</p></div><button mat-stroked-button [disabled]="loading()" (click)="load()"><mat-icon>refresh</mat-icon>Actualizar</button></div>
+			@if (loading()) { <mat-progress-bar mode="indeterminate" aria-label="Cargando indicadores" /> }
+			@if (error()) { <div class="empty-state" role="alert"><mat-icon>cloud_off</mat-icon><h3>No pudimos cargar el resumen</h3><p>{{ error() }}</p><button mat-stroked-button (click)="load()">Reintentar</button></div> }
+			@else if (overview(); as data) {
+				<section class="backoffice-metrics" aria-label="Indicadores del backoffice">
+					<article class="backoffice-metric"><span>Saldo total</span><strong>{{ data.totalBalance | currency:'EUR':'symbol':'1.2-2' }}</strong><small>En todas las cuentas</small></article>
+					<article class="backoffice-metric"><span>Cuentas</span><strong>{{ data.accountCount }}</strong><small>Cuentas registradas</small></article>
+					<article class="backoffice-metric"><span>Clientes</span><strong>{{ data.clientCount }}</strong><small>Usuarios con rol cliente</small></article>
+					<article class="backoffice-metric"><span>Transferencias</span><strong>{{ data.transfersLast30Days }}</strong><small>{{ data.transferVolumeLast30Days | currency:'EUR':'symbol':'1.2-2' }} de volumen</small></article>
+					<article class="backoffice-metric"><span>Pagos pendientes</span><strong>{{ data.pendingPayments }}</strong><small>Incluye pagos en proceso</small></article>
+					<article class="backoffice-metric" [class.metric-warning]="data.failedPayments > 0"><span>Pagos fallidos</span><strong>{{ data.failedPayments }}</strong><small>Revisar en pagos programados</small></article>
+					<article class="backoffice-metric"><span>Depositos</span><strong>{{ data.depositsLast30Days | currency:'EUR':'symbol':'1.2-2' }}</strong><small>Movimientos de caja</small></article>
+					<article class="backoffice-metric"><span>Retiros</span><strong>{{ data.withdrawalsLast30Days | currency:'EUR':'symbol':'1.2-2' }}</strong><small>Movimientos de caja</small></article>
+				</section>
+				<section class="backoffice-panel">
+					<div class="section-toolbar"><h2>Transferencias recientes <span>{{ data.recentTransfers.length }}</span></h2></div>
+					@if (!data.recentTransfers.length) { <div class="empty-state"><mat-icon>swap_horiz</mat-icon><h3>Sin transferencias</h3><p>No se han registrado transferencias.</p></div> }
+					@else { <div class="table-scroll"><table><thead><tr><th>Fecha</th><th>Origen</th><th>Destino</th><th class="amount-cell">Importe</th></tr></thead><tbody>@for (transfer of data.recentTransfers; track transfer.id) { <tr><td>{{ transfer.createdAt | date:'dd/MM/yyyy HH:mm' }}</td><td>•••• {{ transfer.sourceAccountLastFour }}</td><td>•••• {{ transfer.destinationAccountLastFour }}</td><td class="amount-cell">{{ transfer.amount | currency:'EUR':'symbol':'1.2-2' }}</td></tr> }</tbody></table></div> }
+				</section>
+				@if (session.isExecutive()) { <p class="backoffice-note"><mat-icon>info</mat-icon>El perfil Dirección puede consultar indicadores y actividad agregada. No tiene acceso a datos personales ni a acciones operativas.</p> }
+			}
+		</main>
+	</div>
+</div>

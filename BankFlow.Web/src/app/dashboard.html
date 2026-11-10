@@ -3,6 +3,7 @@
 		<a class="brand" href="/"><span class="brand-mark"><mat-icon>account_balance</mat-icon></span>BankFlow</a>
 		<div class="workspace-label">{{ session.isOperator() ? 'OPERACIONES' : 'BANCA PERSONAL' }}</div>
 		<a class="nav-item active" href="/" aria-current="page"><mat-icon>space_dashboard</mat-icon>Cuentas<span class="nav-count">{{ accountCount() }}</span></a>
+		@if (session.isOperator()) {<a class="nav-item" routerLink="/backoffice"><mat-icon>query_stats</mat-icon>Vista ejecutiva</a>}
 		<a class="nav-item" routerLink="/payments"><mat-icon>event_repeat</mat-icon>Pagos</a>
 		<div class="sidebar-bottom"><div class="operator-avatar"><mat-icon>person_outline</mat-icon></div><div class="operator-info"><strong>{{ session.roleLabel() }}</strong><span>{{ session.user()?.email }}</span></div></div>
 	</aside>

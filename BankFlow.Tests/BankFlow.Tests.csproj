@@ -26,6 +26,16 @@
     <ProjectReference Include="../BankFlow.Api/BankFlow.Api.csproj" />
     <ProjectReference Include="../BankFlow.Domain/BankFlow.Domain.csproj" />
     <ProjectReference Include="../BankFlow.Application/BankFlow.Application.csproj" />
+    <ProjectReference Include="../BankFlow.IntegrationLab/BankFlow.IntegrationLab.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="../BankFlow.IntegrationLab/Sql/**/*.sql"
+             Link="Sql/%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../BankFlow.IntegrationLab/Samples/**/*.csv"
+             Link="Samples/%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
